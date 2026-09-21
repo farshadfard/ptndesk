@@ -19,4 +19,5 @@ jobs:
     with:
       upload-artifact: ${{ inputs.upload-artifact }}
       upload-tag: "ptndesk"
+      windows-only: true
     secrets: inherit
