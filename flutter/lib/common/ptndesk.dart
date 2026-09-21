@@ -1,0 +1,112 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+import 'package:pointycastle/export.dart';
+import 'package:uuid/uuid.dart';
+
+import 'package:flutter_hbb/models/platform_model.dart';
+
+// Customer-locked RustDesk client (PTNDesk). The client is pointed at our infra
+// and must enroll with a 5-digit labcode before it is admitted by hbbs.
+//
+// Baked in: our rendezvous server + key, the verify API URL, and the RSA public
+// key used to encrypt the /verify payload (the private half lives in RN.Licensing).
+
+const String kPtnServer = 'rd.ptnapi.ir';
+const String kPtnKey = 'ftPzQdJOdXfTZRpfx5qaPsWMg9SFdqFbyOQEb5iSsNw=';
+const String kPtnApiServer = 'https://verify.ptnapi.ir';
+const String kPtnVerifyUrl = 'https://verify.ptnapi.ir/rustdesk/verify';
+const String kPtnHeartbeatUrl = 'https://verify.ptnapi.ir/rustdesk/heartbeat';
+
+// RSA public modulus (base64, big-endian) of RustDeskAuth; exponent = 65537.
+const String kPtnPubModulusB64 =
+    'mCwUyP/Rol1tQkduhzxtMXHFiawWRWPkMlghz6Hldjtw/IlQPxAmN52KH7BjTGp6xObSxemmkfn9JQI5B6FhPrjjT204Wck3Ecysk8Q8xktIZFNw7zOCPLgSIzdipaYpSTydejqtlWOExjivrtw9Avu6yY/ER+bYW+qQhIwRPgoQet7lDLenNXiyfPbcX2q6Xsb7ZVHIx8T3tRx270hRtskHmB7z7cWs0asN3rXt1dU6CokNL46f20+ugbZ6vEpWCcO0DlBryfjoAYEm0Mc5FvuoeE/i5DeQf2gU9kq4ZqJZDXc5hdGKNmG5jC+sobgFJx8OkJOIc052eu/paWQaOQ==';
+
+const String _kDeviceTokenOption = 'ptndesk-device-token';
+
+BigInt _bytesToBigInt(Uint8List bytes) {
+  var result = BigInt.zero;
+  for (final b in bytes) {
+    result = (result << 8) + BigInt.from(b);
+  }
+  return result;
+}
+
+Uint8List _rsaOaepSha1Encrypt(Uint8List data) {
+  final pub = RSAPublicKey(
+      _bytesToBigInt(base64.decode(kPtnPubModulusB64)), BigInt.from(65537));
+  // Default OAEPEncoding uses SHA-1 for hash + MGF1 — matches C# OaepSHA1.
+  final cipher = OAEPEncoding(RSAEngine())
+    ..init(true, PublicKeyParameter<RSAPublicKey>(pub));
+  return cipher.process(data);
+}
+
+// Force the client onto our server/key every launch (locks the config).
+Future<void> ptndeskPresetConfig() async {
+  await bind.mainSetOption(key: 'custom-rendezvous-server', value: kPtnServer);
+  await bind.mainSetOption(key: 'relay-server', value: kPtnServer);
+  await bind.mainSetOption(key: 'key', value: kPtnKey);
+  await bind.mainSetOption(key: 'api-server', value: kPtnApiServer);
+}
+
+bool ptndeskIsEnrolled() {
+  return bind.mainGetLocalOption(key: _kDeviceTokenOption).isNotEmpty;
+}
+
+String ptndeskDeviceToken() {
+  return bind.mainGetLocalOption(key: _kDeviceTokenOption);
+}
+
+/// Enrolls with a labcode. Returns '' on success, otherwise a user-facing error.
+Future<String> ptndeskEnroll(String labCode) async {
+  final code = int.tryParse(labCode.trim());
+  if (code == null || code <= 0) return 'کد آزمایشگاه نامعتبر است';
+
+  final payload = jsonEncode({
+    'LabCode': code,
+    'RustDeskId': bind.mainGetMyId(),
+    'Hostname': _hostname(),
+    'AppVersion': bind.mainGetVersion(),
+    'TimestampUtc': DateTime.now().toUtc().toIso8601String(),
+    'Nonce': const Uuid().v4(),
+  });
+
+  http.Response resp;
+  try {
+    final enc = _rsaOaepSha1Encrypt(Uint8List.fromList(utf8.encode(payload)));
+    final body = jsonEncode({'payload': base64.encode(enc), 'ips': ''});
+    resp = await http
+        .post(Uri.parse(kPtnVerifyUrl),
+            headers: {'Content-Type': 'application/json'}, body: body)
+        .timeout(const Duration(seconds: 25));
+  } catch (e) {
+    return 'اتصال به سرور ممکن نشد';
+  }
+
+  if (resp.statusCode != 200) return 'خطای سرور (${resp.statusCode})';
+  Map<String, dynamic>? data;
+  try {
+    data = (jsonDecode(resp.body)['data']) as Map<String, dynamic>?;
+  } catch (_) {}
+  if (data == null) return 'پاسخ نامعتبر از سرور';
+  if (data['ok'] != true) return (data['message'] ?? 'مجوز صادر نشد').toString();
+
+  await bind.mainSetLocalOption(
+      key: _kDeviceTokenOption, value: (data['deviceToken'] ?? '').toString());
+  final server = (data['server'] ?? kPtnServer).toString();
+  final key = (data['key'] ?? kPtnKey).toString();
+  await bind.mainSetOption(key: 'custom-rendezvous-server', value: server);
+  await bind.mainSetOption(key: 'relay-server', value: server);
+  await bind.mainSetOption(key: 'key', value: key);
+  return '';
+}
+
+String _hostname() {
+  try {
+    return Platform.localHostname;
+  } catch (_) {
+    return '';
+  }
+}
