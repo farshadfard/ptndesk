@@ -1,0 +1,19 @@
+name: PTNDesk build
+
+# Manual trigger to build the customer client (validates compile + produces installers).
+# Runs the full reusable build; Windows is what we need, other platforms may fail on
+# missing signing secrets (fail-fast is off, so Windows still completes).
+on:
+  workflow_dispatch:
+    inputs:
+      upload-artifact:
+        type: boolean
+        default: true
+
+jobs:
+  build:
+    uses: ./.github/workflows/flutter-build.yml
+    with:
+      upload-artifact: ${{ inputs.upload-artifact }}
+      upload-tag: "ptndesk"
+    secrets: inherit
