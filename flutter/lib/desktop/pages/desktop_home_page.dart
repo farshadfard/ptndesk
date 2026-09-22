@@ -699,9 +699,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted && !ptndeskIsEnrolled()) {
-        showPtndeskEnrollDialog(context);
+        await showPtndeskEnrollDialog(context);
+        // Rebuild so the lab name (set during enrollment) replaces the heading.
+        if (mounted) setState(() {});
       }
     });
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
