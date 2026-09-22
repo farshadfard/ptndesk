@@ -32,6 +32,8 @@ const String kPtnRoleOption = 'ptndesk-role';
 // Minimizing or closing to tray keeps the process alive (no re-prompt); a full
 // exit clears this, so the next launch prompts for the labcode again.
 String _ptnSessionToken = '';
+// Lab display name from the last successful /verify; shown on the home page.
+String _ptnLabName = '';
 
 BigInt _bytesToBigInt(Uint8List bytes) {
   var result = BigInt.zero;
@@ -92,6 +94,8 @@ bool ptndeskIsEnrolled() => _ptnSessionToken.isNotEmpty;
 
 String ptndeskDeviceToken() => _ptnSessionToken;
 
+String ptndeskLabName() => _ptnLabName;
+
 /// Enrolls with a labcode. Returns '' on success, otherwise a user-facing error.
 Future<String> ptndeskEnroll(String labCode) async {
   final code = int.tryParse(labCode.trim());
@@ -128,6 +132,7 @@ Future<String> ptndeskEnroll(String labCode) async {
   if (data['ok'] != true) return (data['message'] ?? 'مجوز صادر نشد').toString();
 
   _ptnSessionToken = (data['deviceToken'] ?? '').toString();
+  _ptnLabName = (data['labName'] ?? '').toString();
   // Role decides the incoming-only lock at next launch (see core_main.rs).
   await bind.mainSetLocalOption(
       key: kPtnRoleOption, value: (data['role'] ?? 'customer').toString());

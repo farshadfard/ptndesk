@@ -3752,6 +3752,19 @@ Widget loadPowered(BuildContext context) {
   ).marginOnly(top: 6, bottom: 6);
 }
 
+// PTNDesk: force text direction from the chosen language. The Rust translate()
+// uses the lang option for the text, but the MaterialApp derives direction from
+// the system locale, which leaves Persian/Arabic/Hebrew laid out left-to-right.
+Widget ptndeskWrapDirection(Widget? child) {
+  final code =
+      bind.mainGetLocalOption(key: 'lang').split(RegExp(r'[-_]')).first.toLowerCase();
+  final rtl = code == 'fa' || code == 'ar' || code == 'he';
+  return Directionality(
+    textDirection: rtl ? TextDirection.rtl : TextDirection.ltr,
+    child: child ?? const SizedBox.shrink(),
+  );
+}
+
 const _kDefaultLogoAsset = 'assets/logo.png';
 const _kLightLogoAsset = 'assets/logo_light.png';
 const _kDarkLogoAsset = 'assets/logo_dark.png';

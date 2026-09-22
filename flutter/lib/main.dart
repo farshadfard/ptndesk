@@ -380,7 +380,7 @@ void _runApp(
       builder: (context, child) {
         child = _keepScaleBuilder(context, child);
         child = botToastBuilder(context, child);
-        return child;
+        return ptndeskWrapDirection(child);
       },
     ),
   ));
@@ -534,6 +534,7 @@ class _AppState extends State<App> with WidgetsBindingObserver {
                       isWebDesktop) {
                     child = keyListenerBuilder(context, child);
                   }
+                  child = ptndeskWrapDirection(child);
                   if (isLinux) {
                     return buildVirtualWindowFrame(context, child);
                   } else {
