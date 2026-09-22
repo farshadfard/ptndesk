@@ -87,8 +87,12 @@ jobs:
 
   generate-bridge:
     uses: ./.github/workflows/bridge.yml
+    with:
+      windows-only: ${{ inputs.windows-only }}
 
   build-RustDeskTempTopMostWindow:
+    # windows-only ships x64 only; skip the slow arm64 runner.
+    if: ${{ !(inputs.windows-only && matrix.job.platform == 'ARM64') }}
     uses: ./.github/workflows/third-party-RustDeskTempTopMostWindow.yml
     strategy:
       fail-fast: false
@@ -111,6 +115,8 @@ jobs:
 
   build-for-windows-flutter:
     name: ${{ matrix.job.target }}
+    # windows-only ships x64 only; skip the arm64 leg (slowest job in the run).
+    if: ${{ !(inputs.windows-only && matrix.job.arch == 'aarch64') }}
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
     runs-on: ${{ matrix.job.os }}
     strategy:
