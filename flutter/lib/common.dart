@@ -3734,8 +3734,22 @@ Widget loadPowered(BuildContext context) {
   if (bind.mainGetBuildinOption(key: "hide-powered-by-me") == 'Y') {
     return SizedBox.shrink();
   }
-  // PTNDesk: show the app icon here instead of the "Powered by" text/link.
-  return loadIcon(32).marginOnly(top: 6);
+  // PTNDesk: brand mark — the app icon with the product name beneath it,
+  // in place of the "Powered by" text/link.
+  return Column(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      loadIcon(64),
+      const SizedBox(height: 6),
+      Text(
+        'PTNDesk',
+        style: Theme.of(context)
+            .textTheme
+            .titleMedium
+            ?.copyWith(fontWeight: FontWeight.w600),
+      ),
+    ],
+  ).marginOnly(top: 6, bottom: 6);
 }
 
 const _kDefaultLogoAsset = 'assets/logo.png';
