@@ -34,6 +34,10 @@ pub fn core_main() -> Option<Vec<String>> {
         return None;
     }
     crate::load_custom_client();
+    // PTNDesk: brand the product (window title, tray, About, %APPDATA% dir, service,
+    // install dir). Set right after load_custom_client, before any config-dir access,
+    // matching where the built-in custom-client mechanism sets APP_NAME.
+    *hbb_common::config::APP_NAME.write().unwrap() = "PTNDesk".to_owned();
     // PTNDesk: customers are controlled, never control — lock to incoming-only.
     hbb_common::config::HARD_SETTINGS
         .write()

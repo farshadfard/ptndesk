@@ -45,6 +45,10 @@ Uint8List _rsaOaepSha1Encrypt(Uint8List data) {
 
 // Force the client onto our server/key every launch (locks the config).
 Future<void> ptndeskPresetConfig() async {
+  // Default the UI to Persian on first run; leave a later user choice alone.
+  if (bind.mainGetLocalOption(key: 'lang').isEmpty) {
+    await bind.mainSetLocalOption(key: 'lang', value: 'fa');
+  }
   await bind.mainSetOption(key: 'custom-rendezvous-server', value: kPtnServer);
   await bind.mainSetOption(key: 'relay-server', value: kPtnServer);
   await bind.mainSetOption(key: 'key', value: kPtnKey);
