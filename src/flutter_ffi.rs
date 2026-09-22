@@ -2474,6 +2474,13 @@ pub fn is_outgoing_only() -> SyncReturn<bool> {
     SyncReturn(config::is_outgoing_only())
 }
 
+// PTNDesk: relaunch the app so core_main re-reads the stored role (operator ->
+// no incoming-only lock). Used once, right after the first operator enrollment.
+pub fn ptndesk_relaunch() {
+    let _ = crate::run_me(Vec::<String>::new());
+    std::process::exit(0);
+}
+
 pub fn is_custom_client() -> SyncReturn<bool> {
     SyncReturn(crate::common::is_custom_client())
 }

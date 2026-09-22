@@ -2986,6 +2986,18 @@ impl Connection {
                 crate::get_builtin_option(keys::OPTION_ALLOW_LOGON_SCREEN_PASSWORD) == "Y"
                     && is_logon();
 
+            // PTNDesk: a locked customer (incoming-only) accepts without a password or
+            // click — only the operator can reach it, and support must be unattended.
+            // Connection-type permission checks above still apply; elevation follows
+            // the install (an installed service session already runs elevated).
+            if hbb_common::config::is_incoming_only() {
+                if !self.send_logon_response_and_keep_alive().await {
+                    return false;
+                }
+                self.try_start_cm(lr.my_id.clone(), lr.my_name.clone(), self.authorized);
+                return true;
+            }
+
             if (password::approve_mode() == ApproveMode::Click && !allow_logon_screen_password)
                 || password::approve_mode() == ApproveMode::Both && !password::has_valid_password()
             {

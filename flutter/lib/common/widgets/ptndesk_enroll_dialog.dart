@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/ptndesk.dart';
+import 'package:flutter_hbb/models/platform_model.dart';
 
 // Blocking labcode enrollment. Shown once (until enrolled) over the locked home.
 Future<void> showPtndeskEnrollDialog(BuildContext context) async {
@@ -34,6 +35,13 @@ class _PtndeskEnrollDialogState extends State<_PtndeskEnrollDialog> {
     }
     if (!mounted) return;
     if (err.isEmpty) {
+      // Operator enrolled into a session that started incoming-only locked (the
+      // role wasn't known at startup): relaunch once so it comes up unlocked.
+      if (bind.mainGetLocalOption(key: kPtnRoleOption) == 'operator' &&
+          bind.isIncomingOnly()) {
+        bind.ptndeskRelaunch();
+        return;
+      }
       Navigator.of(context).pop();
     } else {
       setState(() {
