@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -59,6 +60,32 @@ Future<void> ptndeskPresetConfig() async {
   await bind.mainSetOption(key: 'relay-server', value: kPtnServer);
   await bind.mainSetOption(key: 'key', value: kPtnKey);
   await bind.mainSetOption(key: 'api-server', value: kPtnApiServer);
+  ptndeskStartHeartbeat();
+}
+
+Timer? _ptnHeartbeatTimer;
+
+// Ping the licensing server every 30s while enrolled. The server renews this
+// device's allow-row to the current support end, or revokes it (and hbbs then
+// denies the next connection) if support has lapsed while the app stayed open.
+// It also refreshes LastSeen so the back office sees the customer as online.
+void ptndeskStartHeartbeat() {
+  _ptnHeartbeatTimer?.cancel();
+  _ptnHeartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+    if (!ptndeskIsEnrolled()) return;
+    try {
+      final body = jsonEncode({
+        'RustDeskId': await bind.mainGetMyId(),
+        'DeviceToken': _ptnSessionToken,
+      });
+      await http
+          .post(Uri.parse(kPtnHeartbeatUrl),
+              headers: {'Content-Type': 'application/json'}, body: body)
+          .timeout(const Duration(seconds: 15));
+    } catch (_) {
+      // Best-effort: the allow-row's support-date expiry still bounds access.
+    }
+  });
 }
 
 bool ptndeskIsEnrolled() => _ptnSessionToken.isNotEmpty;
