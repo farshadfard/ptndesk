@@ -24,9 +24,13 @@ const String kPtnHeartbeatUrl = 'https://verify.ptnapi.ir/rustdesk/heartbeat';
 const String kPtnPubModulusB64 =
     'mCwUyP/Rol1tQkduhzxtMXHFiawWRWPkMlghz6Hldjtw/IlQPxAmN52KH7BjTGp6xObSxemmkfn9JQI5B6FhPrjjT204Wck3Ecysk8Q8xktIZFNw7zOCPLgSIzdipaYpSTydejqtlWOExjivrtw9Avu6yY/ER+bYW+qQhIwRPgoQet7lDLenNXiyfPbcX2q6Xsb7ZVHIx8T3tRx270hRtskHmB7z7cWs0asN3rXt1dU6CokNL46f20+ugbZ6vEpWCcO0DlBryfjoAYEm0Mc5FvuoeE/i5DeQf2gU9kq4ZqJZDXc5hdGKNmG5jC+sobgFJx8OkJOIc052eu/paWQaOQ==';
 
-const String _kDeviceTokenOption = 'ptndesk-device-token';
 // Read on the Rust side (core_main) too, so keep the literal key in sync there.
 const String kPtnRoleOption = 'ptndesk-role';
+
+// Per-process enrollment token: the labcode is re-asked on every fresh launch.
+// Minimizing or closing to tray keeps the process alive (no re-prompt); a full
+// exit clears this, so the next launch prompts for the labcode again.
+String _ptnSessionToken = '';
 
 BigInt _bytesToBigInt(Uint8List bytes) {
   var result = BigInt.zero;
@@ -57,13 +61,9 @@ Future<void> ptndeskPresetConfig() async {
   await bind.mainSetOption(key: 'api-server', value: kPtnApiServer);
 }
 
-bool ptndeskIsEnrolled() {
-  return bind.mainGetLocalOption(key: _kDeviceTokenOption).isNotEmpty;
-}
+bool ptndeskIsEnrolled() => _ptnSessionToken.isNotEmpty;
 
-String ptndeskDeviceToken() {
-  return bind.mainGetLocalOption(key: _kDeviceTokenOption);
-}
+String ptndeskDeviceToken() => _ptnSessionToken;
 
 /// Enrolls with a labcode. Returns '' on success, otherwise a user-facing error.
 Future<String> ptndeskEnroll(String labCode) async {
@@ -100,8 +100,7 @@ Future<String> ptndeskEnroll(String labCode) async {
   if (data == null) return 'پاسخ نامعتبر از سرور';
   if (data['ok'] != true) return (data['message'] ?? 'مجوز صادر نشد').toString();
 
-  await bind.mainSetLocalOption(
-      key: _kDeviceTokenOption, value: (data['deviceToken'] ?? '').toString());
+  _ptnSessionToken = (data['deviceToken'] ?? '').toString();
   // Role decides the incoming-only lock at next launch (see core_main.rs).
   await bind.mainSetLocalOption(
       key: kPtnRoleOption, value: (data['role'] ?? 'customer').toString());
