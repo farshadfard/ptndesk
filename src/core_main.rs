@@ -39,10 +39,14 @@ pub fn core_main() -> Option<Vec<String>> {
     // matching where the built-in custom-client mechanism sets APP_NAME.
     *hbb_common::config::APP_NAME.write().unwrap() = "PTNDesk".to_owned();
     // PTNDesk: customers are controlled, never control — lock to incoming-only.
-    hbb_common::config::HARD_SETTINGS
-        .write()
-        .unwrap()
-        .insert("conn-type".to_owned(), "incoming".to_owned());
+    // The operator console (role stored at enrollment) is exempt so it can
+    // connect out; the role lands one launch before this takes effect.
+    if crate::get_local_option("ptndesk-role") != "operator" {
+        hbb_common::config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("conn-type".to_owned(), "incoming".to_owned());
+    }
     #[cfg(windows)]
     if !crate::platform::windows::bootstrap() {
         // return None to terminate the process

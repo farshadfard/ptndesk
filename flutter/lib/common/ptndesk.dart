@@ -25,6 +25,8 @@ const String kPtnPubModulusB64 =
     'mCwUyP/Rol1tQkduhzxtMXHFiawWRWPkMlghz6Hldjtw/IlQPxAmN52KH7BjTGp6xObSxemmkfn9JQI5B6FhPrjjT204Wck3Ecysk8Q8xktIZFNw7zOCPLgSIzdipaYpSTydejqtlWOExjivrtw9Avu6yY/ER+bYW+qQhIwRPgoQet7lDLenNXiyfPbcX2q6Xsb7ZVHIx8T3tRx270hRtskHmB7z7cWs0asN3rXt1dU6CokNL46f20+ugbZ6vEpWCcO0DlBryfjoAYEm0Mc5FvuoeE/i5DeQf2gU9kq4ZqJZDXc5hdGKNmG5jC+sobgFJx8OkJOIc052eu/paWQaOQ==';
 
 const String _kDeviceTokenOption = 'ptndesk-device-token';
+// Read on the Rust side (core_main) too, so keep the literal key in sync there.
+const String kPtnRoleOption = 'ptndesk-role';
 
 BigInt _bytesToBigInt(Uint8List bytes) {
   var result = BigInt.zero;
@@ -100,6 +102,9 @@ Future<String> ptndeskEnroll(String labCode) async {
 
   await bind.mainSetLocalOption(
       key: _kDeviceTokenOption, value: (data['deviceToken'] ?? '').toString());
+  // Role decides the incoming-only lock at next launch (see core_main.rs).
+  await bind.mainSetLocalOption(
+      key: kPtnRoleOption, value: (data['role'] ?? 'customer').toString());
   final server = (data['server'] ?? kPtnServer).toString();
   final key = (data['key'] ?? kPtnKey).toString();
   await bind.mainSetOption(key: 'custom-rendezvous-server', value: server);
