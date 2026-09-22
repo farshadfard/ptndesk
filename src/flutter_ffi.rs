@@ -2476,8 +2476,28 @@ pub fn is_outgoing_only() -> SyncReturn<bool> {
 
 // PTNDesk: relaunch the app so core_main re-reads the stored role (operator ->
 // no incoming-only lock). Used once, right after the first operator enrollment.
+// The flutter runner allows only ONE no-arg instance, so a fresh start can't
+// come up while this one is alive. Kick off a short delayed detached launch that
+// fires after we exit, then exit.
 pub fn ptndesk_relaunch() {
-    let _ = crate::run_me(Vec::<String>::new());
+    #[cfg(windows)]
+    {
+        if let Ok(exe) = std::env::current_exe() {
+            use std::os::windows::process::CommandExt;
+            let _ = std::process::Command::new("cmd")
+                .arg("/C")
+                .arg(format!(
+                    "ping 127.0.0.1 -n 3 >nul & start \"\" \"{}\"",
+                    exe.to_string_lossy()
+                ))
+                .creation_flags(0x0800_0000) // CREATE_NO_WINDOW
+                .spawn();
+        }
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = crate::run_me(Vec::<String>::new());
+    }
     std::process::exit(0);
 }
 
