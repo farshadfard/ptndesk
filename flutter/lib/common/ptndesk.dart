@@ -64,23 +64,24 @@ Future<String> ptndeskEnroll(String labCode) async {
   final code = int.tryParse(labCode.trim());
   if (code == null || code <= 0) return 'کد آزمایشگاه نامعتبر است';
 
-  final payload = jsonEncode({
-    'LabCode': code,
-    'RustDeskId': bind.mainGetMyId(),
-    'Hostname': _hostname(),
-    'AppVersion': bind.mainGetVersion(),
-    'TimestampUtc': DateTime.now().toUtc().toIso8601String(),
-    'Nonce': const Uuid().v4(),
-  });
-
   http.Response resp;
   try {
+    // mainGetMyId/mainGetVersion are async — they must be awaited before
+    // encoding, or the payload holds unresolved Futures and jsonEncode throws.
+    final payload = jsonEncode({
+      'LabCode': code,
+      'RustDeskId': await bind.mainGetMyId(),
+      'Hostname': _hostname(),
+      'AppVersion': await bind.mainGetVersion(),
+      'TimestampUtc': DateTime.now().toUtc().toIso8601String(),
+      'Nonce': const Uuid().v4(),
+    });
     final enc = _rsaOaepSha1Encrypt(Uint8List.fromList(utf8.encode(payload)));
     final body = jsonEncode({'payload': base64.encode(enc), 'ips': ''});
     resp = await http
         .post(Uri.parse(kPtnVerifyUrl),
             headers: {'Content-Type': 'application/json'}, body: body)
-        .timeout(const Duration(seconds: 25));
+        .timeout(const Duration(seconds: 15));
   } catch (e) {
     return 'اتصال به سرور ممکن نشد';
   }

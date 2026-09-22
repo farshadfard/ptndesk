@@ -26,7 +26,12 @@ class _PtndeskEnrollDialogState extends State<_PtndeskEnrollDialog> {
       _busy = true;
       _error = '';
     });
-    final err = await ptndeskEnroll(_controller.text);
+    String err;
+    try {
+      err = await ptndeskEnroll(_controller.text);
+    } catch (_) {
+      err = 'خطای غیرمنتظره';
+    }
     if (!mounted) return;
     if (err.isEmpty) {
       Navigator.of(context).pop();
