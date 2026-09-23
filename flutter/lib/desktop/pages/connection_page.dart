@@ -418,6 +418,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                           autocorrect: false,
                           enableSuggestions: false,
                           keyboardType: TextInputType.visiblePassword,
+                          textDirection: TextDirection.ltr,
                           focusNode: fieldFocusNode,
                           style: const TextStyle(
                             fontFamily: 'WorkSans',

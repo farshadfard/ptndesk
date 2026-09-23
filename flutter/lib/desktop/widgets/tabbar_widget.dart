@@ -594,7 +594,11 @@ class _DesktopTabState extends State<DesktopTab>
 
   Widget _buildBar() {
     final isIncomingHomePage = bind.isIncomingOnly() && isInHomePage();
-    return Row(
+    // PTNDesk: keep the title bar LTR so the window buttons stay on the right
+    // (Windows-style) even when the app UI is RTL.
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(
       children: [
         Expanded(
             child: GestureDetector(
@@ -695,7 +699,7 @@ class _DesktopTabState extends State<DesktopTab>
           labelGetter: labelGetter,
         ).paddingOnly(left: 10)
       ],
-    );
+    ));
   }
 }
 
