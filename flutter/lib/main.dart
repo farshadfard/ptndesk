@@ -308,7 +308,10 @@ bool _isCmReadyToShow = false;
 showCmWindow({bool isStartup = false}) async {
   if (isStartup) {
     WindowOptions windowOptions = getHiddenTitleBarWindowOptions(
-        size: kConnectionManagerWindowSizeClosedChat, alwaysOnTop: true);
+        // PTNDesk: not always-on-top, so the operator can bring the customer's
+        // desktop forward while controlling — the CM/chat window still comes to
+        // front on a new message but no longer blocks the desktop.
+        size: kConnectionManagerWindowSizeClosedChat, alwaysOnTop: false);
     await windowManager.waitUntilReadyToShow(windowOptions, null);
     bind.mainHideDock();
     await Future.wait([
