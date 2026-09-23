@@ -20,4 +20,6 @@ jobs:
       upload-artifact: ${{ inputs.upload-artifact }}
       upload-tag: "ptndesk"
       windows-only: true
+      include-android: true
+      include-linux: true
     secrets: inherit
