@@ -132,7 +132,8 @@ Future<String> ptndeskEnroll(String labCode) async {
   if (data['ok'] != true) return (data['message'] ?? 'مجوز صادر نشد').toString();
 
   _ptnSessionToken = (data['deviceToken'] ?? '').toString();
-  _ptnLabName = (data['labName'] ?? '').toString();
+  // Lab names may carry a "*suffix" that must not be shown; keep the part before it.
+  _ptnLabName = (data['labName'] ?? '').toString().split('*').first.trim();
   // Role decides the incoming-only lock at next launch (see core_main.rs).
   await bind.mainSetLocalOption(
       key: kPtnRoleOption, value: (data['role'] ?? 'customer').toString());
