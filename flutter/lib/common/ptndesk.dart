@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
 import 'package:pointycastle/export.dart';
 import 'package:uuid/uuid.dart';
 
@@ -80,10 +79,7 @@ void ptndeskStartHeartbeat() {
         'RustDeskId': await bind.mainGetMyId(),
         'DeviceToken': _ptnSessionToken,
       });
-      await http
-          .post(Uri.parse(kPtnHeartbeatUrl),
-              headers: {'Content-Type': 'application/json'}, body: body)
-          .timeout(const Duration(seconds: 15));
+      await bind.ptndeskPost(url: kPtnHeartbeatUrl, body: body);
     } catch (_) {
       // Best-effort: the allow-row's support-date expiry still bounds access.
     }
@@ -101,7 +97,7 @@ Future<String> ptndeskEnroll(String labCode) async {
   final code = int.tryParse(labCode.trim());
   if (code == null || code <= 0) return 'کد آزمایشگاه نامعتبر است';
 
-  http.Response resp;
+  String respBody;
   try {
     // mainGetMyId/mainGetVersion are async — they must be awaited before
     // encoding, or the payload holds unresolved Futures and jsonEncode throws.
@@ -115,18 +111,16 @@ Future<String> ptndeskEnroll(String labCode) async {
     });
     final enc = _rsaOaepSha1Encrypt(Uint8List.fromList(utf8.encode(payload)));
     final body = jsonEncode({'payload': base64.encode(enc), 'ips': ''});
-    resp = await http
-        .post(Uri.parse(kPtnVerifyUrl),
-            headers: {'Content-Type': 'application/json'}, body: body)
-        .timeout(const Duration(seconds: 15));
+    // POST via Rust (reqwest): Dart's dart:io TLS crashes on Windows 7.
+    respBody = await bind.ptndeskPost(url: kPtnVerifyUrl, body: body);
   } catch (e) {
     return 'اتصال به سرور ممکن نشد';
   }
 
-  if (resp.statusCode != 200) return 'خطای سرور (${resp.statusCode})';
+  if (respBody.isEmpty) return 'اتصال به سرور ممکن نشد';
   Map<String, dynamic>? data;
   try {
-    data = (jsonDecode(resp.body)['data']) as Map<String, dynamic>?;
+    data = (jsonDecode(respBody)['data']) as Map<String, dynamic>?;
   } catch (_) {}
   if (data == null) return 'پاسخ نامعتبر از سرور';
   if (data['ok'] != true) return (data['message'] ?? 'مجوز صادر نشد').toString();

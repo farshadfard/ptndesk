@@ -2474,6 +2474,27 @@ pub fn is_outgoing_only() -> SyncReturn<bool> {
     SyncReturn(config::is_outgoing_only())
 }
 
+// PTNDesk: POST JSON via the Rust HTTP stack (reqwest). Dart's dart:io TLS
+// crashes flutter_windows.dll on Windows 7, so enrollment/heartbeat POST here
+// instead. frb runs this off the UI thread; returns the body, or "" on error.
+pub fn ptndesk_post(url: String, body: String) -> String {
+    let rt = match hbb_common::tokio::runtime::Runtime::new() {
+        Ok(rt) => rt,
+        Err(_) => return String::new(),
+    };
+    rt.block_on(async {
+        match hbb_common::tokio::time::timeout(
+            std::time::Duration::from_secs(15),
+            crate::post_request(url, body, "Content-Type: application/json"),
+        )
+        .await
+        {
+            Ok(Ok(text)) => text,
+            _ => String::new(),
+        }
+    })
+}
+
 // PTNDesk: relaunch the app so core_main re-reads the stored role (operator ->
 // no incoming-only lock). Used once, right after the first operator enrollment.
 // The flutter runner allows only ONE no-arg instance, so a fresh start can't
