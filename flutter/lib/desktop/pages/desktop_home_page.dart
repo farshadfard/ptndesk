@@ -236,6 +236,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       child: TextFormField(
                         controller: model.serverId,
                         readOnly: true,
+                        // Keep the digits/grouping in order regardless of the
+                        // app's RTL layout.
+                        textDirection: TextDirection.ltr,
                         decoration: InputDecoration(
                           border: InputBorder.none,
                           contentPadding: EdgeInsets.only(top: 10, bottom: 10),
@@ -333,6 +336,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           child: TextFormField(
                             controller: model.serverPasswd,
                             readOnly: true,
+                            textDirection: TextDirection.ltr,
                             decoration: InputDecoration(
                               border: InputBorder.none,
                               contentPadding:
