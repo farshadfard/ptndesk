@@ -469,9 +469,9 @@ class _DesktopTabState extends State<DesktopTab>
 
     // hide window on close
     if (isMainWindow) {
-      if (rustDeskWinManager.getActiveWindows().contains(kMainWindowId)) {
-        await rustDeskWinManager.unregisterActiveWindow(kMainWindowId);
-      }
+      // PTNDesk: keep the main window registered so close only hides it (restore
+      // from the tray or shortcut). Unregistering the last active window exits
+      // the process (onActiveWindowChanged), and a new process re-asks the labcode.
       // macOS specific workaround, the window is not hiding when in fullscreen.
       if (isMacOS && await windowManager.isFullScreen()) {
         await windowManager.setFullScreen(false);

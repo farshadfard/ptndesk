@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/ptndesk.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -85,6 +87,11 @@ class _PtndeskEnrollDialogState extends State<_PtndeskEnrollDialog> {
           ),
         ),
         actions: [
+          // Closing the window now only hides it, so this is the way out.
+          TextButton(
+            onPressed: () => exit(0),
+            child: const Text('انصراف'),
+          ),
           ElevatedButton(
             onPressed: _busy ? null : _submit,
             child: _busy
