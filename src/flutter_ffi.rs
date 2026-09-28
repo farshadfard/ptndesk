@@ -2495,6 +2495,23 @@ pub fn ptndesk_post(url: String, body: String) -> String {
     })
 }
 
+// PTNDesk: this machine's NIC MACs (comma-separated). The licensing server only
+// admits the operator labcode from MACs on its allowlist.
+pub fn ptndesk_macs() -> SyncReturn<String> {
+    // default_net breaks the iOS simulator build (see lan.rs).
+    #[cfg(not(target_os = "ios"))]
+    return SyncReturn(
+        default_net::get_interfaces()
+            .into_iter()
+            .filter_map(|i| i.mac_addr.map(|m| m.address()))
+            .filter(|m| m != "00:00:00:00:00:00")
+            .collect::<Vec<_>>()
+            .join(","),
+    );
+    #[cfg(target_os = "ios")]
+    SyncReturn(String::new())
+}
+
 // PTNDesk: relaunch the app so core_main re-reads the stored role (operator ->
 // no incoming-only lock). Used once, right after the first operator enrollment.
 // The flutter runner allows only ONE no-arg instance, so a fresh start can't

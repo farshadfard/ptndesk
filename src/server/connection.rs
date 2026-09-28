@@ -2990,7 +2990,12 @@ impl Connection {
             // click — only the operator can reach it, and support must be unattended.
             // Connection-type permission checks above still apply; elevation follows
             // the install (an installed service session already runs elevated).
-            if hbb_common::config::is_incoming_only() {
+            // An operator machine still asks to accept: only operators connect out, so
+            // its incoming sessions are operator-to-operator. The role comes from the
+            // synced option — the service's own local config never sees it.
+            if hbb_common::config::is_incoming_only()
+                && Config::get_option("ptndesk-role") != "operator"
+            {
                 if !self.send_logon_response_and_keep_alive().await {
                     return false;
                 }

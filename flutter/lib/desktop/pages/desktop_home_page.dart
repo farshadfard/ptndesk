@@ -406,11 +406,22 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               if (!isOutgoingOnly)
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: Text(
-                    ptndeskLabName().isNotEmpty
-                        ? ptndeskLabName()
-                        : translate("Your Desktop"),
-                    style: Theme.of(context).textTheme.titleLarge,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          ptndeskLabName().isNotEmpty
+                              ? ptndeskLabName()
+                              : translate("Your Desktop"),
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                      ),
+                      if (ptndeskIsEnrolled())
+                        TextButton(
+                          onPressed: ptndeskLogout,
+                          child: const Text('خروج'),
+                        ),
+                    ],
                   ),
                 ),
             ],

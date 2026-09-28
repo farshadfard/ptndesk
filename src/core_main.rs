@@ -138,6 +138,12 @@ pub fn core_main() -> Option<Vec<String>> {
         args.push("--install".to_owned());
         flutter_args.push("--install".to_string());
     }
+    // PTNDesk: installation is mandatory — an uninstalled copy opens the install page.
+    #[cfg(windows)]
+    if args.is_empty() && !crate::platform::is_installed() && !config::is_disable_installation() {
+        args.push("--install".to_owned());
+        flutter_args.push("--install".to_string());
+    }
     if args.contains(&"--noinstall".to_string()) {
         args.clear();
     }

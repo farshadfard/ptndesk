@@ -19,12 +19,14 @@ const String kPtnKey = 'ftPzQdJOdXfTZRpfx5qaPsWMg9SFdqFbyOQEb5iSsNw=';
 const String kPtnApiServer = 'https://verify.ptnapi.ir';
 const String kPtnVerifyUrl = 'https://verify.ptnapi.ir/rustdesk/verify';
 const String kPtnHeartbeatUrl = 'https://verify.ptnapi.ir/rustdesk/heartbeat';
+const String kPtnOfflineUrl = 'https://verify.ptnapi.ir/rustdesk/offline';
 
 // RSA public modulus (base64, big-endian) of RustDeskAuth; exponent = 65537.
 const String kPtnPubModulusB64 =
     'mCwUyP/Rol1tQkduhzxtMXHFiawWRWPkMlghz6Hldjtw/IlQPxAmN52KH7BjTGp6xObSxemmkfn9JQI5B6FhPrjjT204Wck3Ecysk8Q8xktIZFNw7zOCPLgSIzdipaYpSTydejqtlWOExjivrtw9Avu6yY/ER+bYW+qQhIwRPgoQet7lDLenNXiyfPbcX2q6Xsb7ZVHIx8T3tRx270hRtskHmB7z7cWs0asN3rXt1dU6CokNL46f20+ugbZ6vEpWCcO0DlBryfjoAYEm0Mc5FvuoeE/i5DeQf2gU9kq4ZqJZDXc5hdGKNmG5jC+sobgFJx8OkJOIc052eu/paWQaOQ==';
 
-// Read on the Rust side (core_main) too, so keep the literal key in sync there.
+// Read on the Rust side (core_main, server/connection.rs) too, so keep the
+// literal key in sync there.
 const String kPtnRoleOption = 'ptndesk-role';
 
 // Per-process enrollment token: the labcode is re-asked on every fresh launch.
@@ -110,7 +112,13 @@ Future<String> ptndeskEnroll(String labCode) async {
       'Nonce': const Uuid().v4(),
     });
     final enc = _rsaOaepSha1Encrypt(Uint8List.fromList(utf8.encode(payload)));
-    final body = jsonEncode({'payload': base64.encode(enc), 'ips': ''});
+    // MACs ride outside the RSA payload: OAEP caps it at ~214 bytes and a
+    // machine can have many NICs. The server checks them for the operator labcode.
+    final body = jsonEncode({
+      'payload': base64.encode(enc),
+      'ips': '',
+      'macs': bind.ptndeskMacs(),
+    });
     // POST via Rust (reqwest): Dart's dart:io TLS crashes on Windows 7.
     respBody = await bind.ptndeskPost(url: kPtnVerifyUrl, body: body);
   } catch (e) {
@@ -129,14 +137,33 @@ Future<String> ptndeskEnroll(String labCode) async {
   // Lab names may carry a "*suffix" that must not be shown; keep the part before it.
   _ptnLabName = (data['labName'] ?? '').toString().split('*').first.trim();
   // Role decides the incoming-only lock at next launch (see core_main.rs).
-  await bind.mainSetLocalOption(
-      key: kPtnRoleOption, value: (data['role'] ?? 'customer').toString());
+  final role = (data['role'] ?? 'customer').toString();
+  await bind.mainSetLocalOption(key: kPtnRoleOption, value: role);
+  // Synced to the service, which decides accept-prompt vs auto-accept.
+  await bind.mainSetOption(key: kPtnRoleOption, value: role);
   final server = (data['server'] ?? kPtnServer).toString();
   final key = (data['key'] ?? kPtnKey).toString();
   await bind.mainSetOption(key: 'custom-rendezvous-server', value: server);
   await bind.mainSetOption(key: 'relay-server', value: server);
   await bind.mainSetOption(key: 'key', value: key);
   return '';
+}
+
+/// "خروج": forget the labcode and quit, so the next launch asks for it again.
+Future<void> ptndeskLogout() async {
+  try {
+    // Drop off the back office's online list now instead of after 60s.
+    await bind
+        .ptndeskPost(
+            url: kPtnOfflineUrl,
+            body: jsonEncode({
+              'RustDeskId': await bind.mainGetMyId(),
+              'DeviceToken': _ptnSessionToken,
+            }))
+        .timeout(const Duration(seconds: 3));
+  } catch (_) {}
+  // The token and lab name live only in this process, so exiting clears them.
+  exit(0);
 }
 
 String _hostname() {
