@@ -2279,6 +2279,26 @@ pub fn load_custom_client() {
     }
 }
 
+// PTNDesk: our server and key, locked like a custom client's override-settings, and
+// Persian as the default language.
+pub fn load_ptndesk_preset() {
+    {
+        let mut settings = config::OVERWRITE_SETTINGS.write().unwrap();
+        settings.insert(
+            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
+            "rd.ptnapi.ir".to_owned(),
+        );
+        settings.insert(
+            keys::OPTION_KEY.to_owned(),
+            "ftPzQdJOdXfTZRpfx5qaPsWMg9SFdqFbyOQEb5iSsNw=".to_owned(),
+        );
+    }
+    config::DEFAULT_LOCAL_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_LANGUAGE.to_owned(), "fa".to_owned());
+}
+
 fn read_custom_client_advanced_settings(
     settings: serde_json::Value,
     map_display_settings: &HashMap<String, &&str>,

@@ -38,22 +38,7 @@ pub fn core_main() -> Option<Vec<String>> {
     // install dir). Set right after load_custom_client, before any config-dir access,
     // matching where the built-in custom-client mechanism sets APP_NAME.
     *hbb_common::config::APP_NAME.write().unwrap() = "PTNDesk".to_owned();
-    // PTNDesk: our server and key, locked like a custom client's override-settings.
-    {
-        let mut settings = config::OVERWRITE_SETTINGS.write().unwrap();
-        settings.insert(
-            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
-            "rd.ptnapi.ir".to_owned(),
-        );
-        settings.insert(
-            keys::OPTION_KEY.to_owned(),
-            "ftPzQdJOdXfTZRpfx5qaPsWMg9SFdqFbyOQEb5iSsNw=".to_owned(),
-        );
-    }
-    config::DEFAULT_LOCAL_SETTINGS
-        .write()
-        .unwrap()
-        .insert(keys::OPTION_LANGUAGE.to_owned(), "fa".to_owned());
+    crate::load_ptndesk_preset();
     // PTNDesk: the customer build only accepts incoming sessions; the helpdesk build
     // (PTNDESK_HELPDESK=1 at compile time) can also connect out.
     if option_env!("PTNDESK_HELPDESK") != Some("1") {

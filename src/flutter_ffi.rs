@@ -51,6 +51,9 @@ fn initialize(app_dir: &str, custom_client_config: &str) {
     } else {
         crate::read_custom_client(custom_client_config);
     }
+    // PTNDesk: desktop applies this in core_main, which Android never runs.
+    #[cfg(target_os = "android")]
+    crate::load_ptndesk_preset();
     #[cfg(target_os = "android")]
     {
         // flexi_logger can't work when android_logger initialized.
