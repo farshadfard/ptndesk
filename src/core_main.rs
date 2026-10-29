@@ -38,15 +38,27 @@ pub fn core_main() -> Option<Vec<String>> {
     // install dir). Set right after load_custom_client, before any config-dir access,
     // matching where the built-in custom-client mechanism sets APP_NAME.
     *hbb_common::config::APP_NAME.write().unwrap() = "PTNDesk".to_owned();
-    // PTNDesk: customers are controlled, never control — lock to incoming-only.
-    // The operator console (role stored at enrollment) is exempt so it can
-    // connect out; the role lands one launch before this takes effect.
-    if crate::get_local_option("ptndesk-role") != "operator" {
-        hbb_common::config::HARD_SETTINGS
-            .write()
-            .unwrap()
-            .insert("conn-type".to_owned(), "incoming".to_owned());
+    // PTNDesk: our server and key, locked like a custom client's override-settings.
+    {
+        let mut settings = config::OVERWRITE_SETTINGS.write().unwrap();
+        settings.insert(
+            keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.to_owned(),
+            "rd.ptnapi.ir".to_owned(),
+        );
+        settings.insert(
+            keys::OPTION_KEY.to_owned(),
+            "ftPzQdJOdXfTZRpfx5qaPsWMg9SFdqFbyOQEb5iSsNw=".to_owned(),
+        );
     }
+    config::DEFAULT_LOCAL_SETTINGS
+        .write()
+        .unwrap()
+        .insert(keys::OPTION_LANGUAGE.to_owned(), "fa".to_owned());
+    // PTNDesk: customers are controlled, never control — lock to incoming-only.
+    hbb_common::config::HARD_SETTINGS
+        .write()
+        .unwrap()
+        .insert("conn-type".to_owned(), "incoming".to_owned());
     #[cfg(windows)]
     if !crate::platform::windows::bootstrap() {
         // return None to terminate the process
@@ -135,12 +147,6 @@ pub fn core_main() -> Option<Vec<String>> {
     }
     let click_setup = cfg!(windows) && args.is_empty() && crate::common::is_setup(&arg_exe);
     if click_setup && !config::is_disable_installation() {
-        args.push("--install".to_owned());
-        flutter_args.push("--install".to_string());
-    }
-    // PTNDesk: installation is mandatory — an uninstalled copy opens the install page.
-    #[cfg(windows)]
-    if args.is_empty() && !crate::platform::is_installed() && !config::is_disable_installation() {
         args.push("--install".to_owned());
         flutter_args.push("--install".to_string());
     }

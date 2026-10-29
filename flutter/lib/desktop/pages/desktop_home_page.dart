@@ -6,8 +6,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common.dart';
-import 'package:flutter_hbb/common/ptndesk.dart';
-import 'package:flutter_hbb/common/widgets/ptndesk_enroll_dialog.dart';
 import 'package:flutter_hbb/common/widgets/animated_rotation_widget.dart';
 import 'package:flutter_hbb/common/widgets/custom_password.dart';
 import 'package:flutter_hbb/consts.dart';
@@ -406,22 +404,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
               if (!isOutgoingOnly)
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          ptndeskLabName().isNotEmpty
-                              ? ptndeskLabName()
-                              : translate("Your Desktop"),
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      if (ptndeskIsEnrolled())
-                        TextButton(
-                          onPressed: ptndeskLogout,
-                          child: const Text('خروج'),
-                        ),
-                    ],
+                  child: Text(
+                    translate("Your Desktop"),
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
             ],
@@ -714,13 +699,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (mounted && !ptndeskIsEnrolled()) {
-        await showPtndeskEnrollDialog(context);
-        // Rebuild so the lab name (set during enrollment) replaces the heading.
-        if (mounted) setState(() {});
-      }
-    });
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
       await gFFI.serverModel.fetchID();
       final error = await bind.mainGetError();

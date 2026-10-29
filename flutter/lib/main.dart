@@ -6,7 +6,6 @@ import 'package:bot_toast/bot_toast.dart';
 import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_hbb/common/ptndesk.dart';
 import 'package:flutter_hbb/common/widgets/overlay.dart';
 import 'package:flutter_hbb/desktop/pages/desktop_tab_page.dart';
 import 'package:flutter_hbb/desktop/pages/install_page.dart';
@@ -137,7 +136,6 @@ void runMainApp(bool startService) async {
   checkUpdate();
   // trigger connection status updater
   await bind.mainCheckConnectStatus();
-  await ptndeskPresetConfig();
   if (startService) {
     gFFI.serverModel.startService();
   }
@@ -308,10 +306,7 @@ bool _isCmReadyToShow = false;
 showCmWindow({bool isStartup = false}) async {
   if (isStartup) {
     WindowOptions windowOptions = getHiddenTitleBarWindowOptions(
-        // PTNDesk: not always-on-top, so the operator can bring the customer's
-        // desktop forward while controlling — the CM/chat window still comes to
-        // front on a new message but no longer blocks the desktop.
-        size: kConnectionManagerWindowSizeClosedChat, alwaysOnTop: false);
+        size: kConnectionManagerWindowSizeClosedChat, alwaysOnTop: true);
     await windowManager.waitUntilReadyToShow(windowOptions, null);
     bind.mainHideDock();
     await Future.wait([
