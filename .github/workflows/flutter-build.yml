@@ -113,12 +113,14 @@ jobs:
       target_version: Windows10
 
   build-for-windows-flutter:
-    name: ${{ matrix.job.target }}
+    name: ${{ matrix.job.target }} (${{ matrix.variant }})
     needs: [build-RustDeskTempTopMostWindow, generate-bridge]
     runs-on: ${{ matrix.job.os }}
     strategy:
       fail-fast: false
       matrix:
+        # client: customers, incoming-only. helpdesk: staff, can also connect out.
+        variant: [client, helpdesk]
         # windows-only ships x64 only; drop the arm64 leg (slowest job in the run).
         # vram is x86/x64-only (NVENC needs CUDA, Intel MediaSDK needs __rdtsc); no
         # NV/Intel/AMD hardware exists on Windows-on-ARM, so arm64 keeps build-args empty.
@@ -272,6 +274,8 @@ jobs:
         run: echo "SODIUM_LIB_DIR=$VCPKG_ROOT/installed/${{ matrix.job.vcpkg-triplet }}/lib" >> "$GITHUB_ENV"
 
       - name: Build rustdesk
+        env:
+          PTNDESK_HELPDESK: ${{ matrix.variant == 'helpdesk' && '1' || '' }}
         run: |
           # Windows: build RustDesk
           # --hwcodec is shared by all Windows targets; per-target extras (e.g. --vram) come from the matrix
@@ -323,7 +327,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}
+          name: rustdesk-unsigned-windows-${{ matrix.job.arch }}-${{ matrix.variant }}
           path: rustdesk
 
       - name: Sign rustdesk files
@@ -355,7 +359,8 @@ jobs:
           $msiPlatform = if ('${{ matrix.job.arch }}' -eq 'aarch64') { 'ARM64' } else { 'x64' }
           msbuild msi.sln -p:Configuration=Release -p:Platform=$msiPlatform /p:TargetVersion=Windows10
           $msi = Get-ChildItem ./Package/bin/*/Release/en-us/Package.msi | Select-Object -First 1
-          mv $msi.FullName ../../SignOutput/PTNDesk-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
+          $name = if ('${{ matrix.variant }}' -eq 'helpdesk') { 'PTNDesk-Helpdesk' } else { 'PTNDesk' }
+          mv $msi.FullName ../../SignOutput/$name-${{ env.VERSION }}-${{ matrix.job.arch }}.msi
           sha256sum ../../SignOutput/PTNDesk-*.msi
 
       - name: Build pre-built MSI template
@@ -376,7 +381,7 @@ jobs:
         # Building the arm64 template on the native arm64 runner makes the ARM
         # package available: the build agents are x64 and cannot run
         # preprocess.py against an ARM exe.
-        if: ${{ env.UPLOAD_ARTIFACT == 'true' && !inputs.windows-only }}
+        if: ${{ env.UPLOAD_ARTIFACT == 'true' && !inputs.windows-only && matrix.variant == 'client' }}
         run: |
           git checkout -- res/msi
           cp -r ./rustdesk ./rustdesk-msi-template
@@ -400,7 +405,7 @@ jobs:
           rm -r -fo ./rustdesk-msi-template
 
       - name: Upload unsigned msi template
-        if: ${{ env.UPLOAD_ARTIFACT == 'true' && !inputs.windows-only }}
+        if: ${{ env.UPLOAD_ARTIFACT == 'true' && !inputs.windows-only && matrix.variant == 'client' }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: rustdesk-unsigned-msi-template-${{ matrix.job.arch }}

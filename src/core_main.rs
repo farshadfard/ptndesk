@@ -54,11 +54,14 @@ pub fn core_main() -> Option<Vec<String>> {
         .write()
         .unwrap()
         .insert(keys::OPTION_LANGUAGE.to_owned(), "fa".to_owned());
-    // PTNDesk: customers are controlled, never control — lock to incoming-only.
-    hbb_common::config::HARD_SETTINGS
-        .write()
-        .unwrap()
-        .insert("conn-type".to_owned(), "incoming".to_owned());
+    // PTNDesk: the customer build only accepts incoming sessions; the helpdesk build
+    // (PTNDESK_HELPDESK=1 at compile time) can also connect out.
+    if option_env!("PTNDESK_HELPDESK") != Some("1") {
+        hbb_common::config::HARD_SETTINGS
+            .write()
+            .unwrap()
+            .insert("conn-type".to_owned(), "incoming".to_owned());
+    }
     #[cfg(windows)]
     if !crate::platform::windows::bootstrap() {
         // return None to terminate the process
