@@ -467,7 +467,7 @@ class _ConnectionPageState extends State<ConnectionPage>
                     maxHeight = maxHeight.clamp(0, 200);
 
                     return Align(
-                      alignment: Alignment.topLeft,
+                      alignment: AlignmentDirectional.topStart,
                       child: Container(
                           decoration: BoxDecoration(
                             boxShadow: [
